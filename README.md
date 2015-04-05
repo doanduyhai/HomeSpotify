@@ -6,11 +6,12 @@ HomeSpotify is a Cassandra/Spark hands-on lab
 
 For this hands-on lab, you'll need:
 
+* latest version of **Git**
 * **Scala** (**2.10.x** or **2.11.x**) or **Java 8**
 * lastest version of **VirtualBox**, **Vagrant** and **Ansible** to build the VM
 
 ### Branches
-This repository contains 6 branches:
+This repository contains 6 **Git** branches:
 
 * **scala**: exercises in Scala
 * **scala_solution**: solutions for the exercises in Scala
