@@ -1,0 +1,9 @@
+- name: Install various tools
+  apt: name={{item}}
+  with_items:
+    - vim
+    - git
+    - nmon
+    - dstat
+    - tar
+    - gzip

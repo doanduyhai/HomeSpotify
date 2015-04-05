@@ -1,0 +1,25 @@
+---
+
+- name: checkout the app
+  git:
+    repo=https://github.com/doanduyhai/HomeSpotify.git
+    version=webapp
+    dest=/home/vagrant/hands-on/app
+  sudo: no
+
+- name: create service for handson-app
+  template: src=homespotify dest=/etc/init.d/homespotify owner=root group=root mode=0751
+  sudo: yes
+
+- name: build the stand-alone jar (it may take a while because SBT will download 111Mb of dependencies)
+  shell: ./sbt assembly
+  args:
+    chdir: /home/vagrant/hands-on/app
+
+- name: install homespotify as system service at priority 55 (after Cassandra, which is 50)
+  shell: update-rc.d homespotify defaults 55
+  sudo: yes
+
+- name: ensure the homespotify webapp is started
+  shell: /etc/init.d/homespotify start
+  sudo: yes

@@ -1,0 +1,14 @@
+---
+- hosts: all
+  sudo: yes
+  vars:
+    cluster_name: Spark-Cassandra
+    vagrant_ip: 192.168.51.10
+    seeds: 192.168.51.10
+
+  roles:
+    - tools
+    - java
+    - cassandra
+    - handson-data
+    - handson-app

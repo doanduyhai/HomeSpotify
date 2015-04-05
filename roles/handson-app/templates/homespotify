@@ -1,0 +1,158 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          skeleton
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Example initscript
+# Description:       This file should be used to construct scripts to be
+#                    placed in /etc/init.d.
+### END INIT INFO
+
+# Author: DuyHai DOAN
+#
+# Please remove the "Author" lines above and replace them
+# with your own name if you copy and modify this script.
+
+# Do NOT "set -e"
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Home Spotify back-end webapp"
+NAME=homespotify
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+VERBOSE=yes
+
+[ -e /home/vagrant/hands-on/app/sbt ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+#
+# Function to retrieve the process id from ps -ef
+#
+get_process_id_from_ps() {
+	PROCESS_PID=`ps -ef | grep "HomeSpotify" | grep -v "grep" | awk '{ print $2 }'`
+}
+
+#
+# Function to retrieve the process id from pid file (may not exist)
+#
+get_process_id_from_pid_file() {
+	PROCESS_PID=`cat $PIDFILE 2>/dev/null`	
+}
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+	#Wait for Cassandra native port (9042) to be available before launching the webapp
+	while ! echo exit | nc {{ vagrant_ip }} 9042; do sleep 10; done
+
+	java -Xmx512M -jar /home/vagrant/hands-on/app/target/scala-2.11/HomeSpotify-assembly-1.0-SNAPSHOT.jar >/tmp/homespotify.log 2>&1 & 
+
+	#Enable access to the log file
+	chmod 777 /tmp/homespotify.log
+
+	get_process_id_from_ps
+
+	#Write the pid file
+	echo $PROCESS_PID > $PIDFILE
+
+	echo "$NAME is started with pid $PROCESS_PID, saving pid file to $PIDFILE"
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop() {
+
+	get_process_id_from_pid_file
+
+	if [ -z "$PROCESS_PID" ]; then
+		echo "Cannot find pid file $PIDFILE. $NAME is not stopped"
+	else
+		kill -15 $PROCESS_PID
+		echo "$NAME is stopped"
+		rm $PIDFILE
+	fi
+}
+
+#
+# Start the application if not started, otherwise, don't do anything
+#
+do_restart() {
+
+	get_process_id_from_ps
+
+	if [ -z "$PROCESS_PID" ]; then
+		do_start
+	else
+		do_stop
+		sleep 1
+		do_start
+	fi
+}
+
+#
+# Function that check whether the service is running
+#
+do_check() {
+
+	get_process_id_from_pid_file
+
+	if [ -z "$PROCESS_PID" ]; then
+		
+		get_process_id_from_ps
+
+		if [ -z "$PROCESS_PID" ]; then
+			echo "$NAME is not running"
+		else
+			echo "$NAME is running with PID $PROCESS_PID"
+			echo $PROCESS_PID>$PIDFILE
+		fi
+	else
+		echo "$NAME is running with PID $PROCESS_PID"
+		ps -ef | grep "$PROCESS_PID" | grep -v "grep"
+	fi 		
+}
+
+case "$1" in
+  start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+	do_start
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
+	;;
+  stop)
+	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+	do_stop
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
+	;;
+  status)
+	do_check
+	;;
+  restart|force-reload)
+	do_restart
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+	exit 3
+	;;
+esac

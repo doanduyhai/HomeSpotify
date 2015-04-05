@@ -1,0 +1,23 @@
+- name: copy hands on CSV files
+  copy: src=data dest=/home/vagrant/hands-on owner=vagrant group=vagrant
+
+- name: unzip data files
+  unarchive: copy=no src=/home/vagrant/hands-on/data/data.tgz  dest=/home/vagrant/hands-on/data owner=vagrant
+  sudo: no
+
+- name: check if data has been imported
+  command: cqlsh -e 'SELECT keyspace_name FROM system.schema_keyspaces;' {{ vagrant_ip }}
+  register: u
+  changed_when: false
+
+- name: insert music data into Cassandra
+  command: cqlsh -f music.cql {{ vagrant_ip }}
+  args:
+    chdir: /home/vagrant/hands-on/data/
+  when: u.stdout.find("home_spotify") == -1
+
+- name: insert ratings data into Cassandra
+  command: cqlsh -f ratings.cql {{ vagrant_ip }}
+  args:
+    chdir: /home/vagrant/hands-on/data/
+  when: u.stdout.find("home_spotify") == -1  
