@@ -1,0 +1,108 @@
+<div class="row">
+    <h3>The solution</h3>
+    <tabset>
+        <tab heading="Scala">
+<pre><code class="scala">
+val sc = buildSparkContext(EXERCISE_4)
+
+/*
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   ...
+ *   country TEXT,
+ *   ...,
+ *   PRIMARY KEY(name)
+ * );
+ *
+ *
+ * CREATE TABLE IF NOT EXISTS albums (
+ *   ...
+ *   year INT,
+ *   performer TEXT,
+ *   ...,
+ * );
+ */
+val performers:RDD[(String,String)] = sc.cassandraTable(KEYSPACE, PERFORMERS)
+    .select("name","country")
+    .as((_:String,_:String))
+    .filter{ case(_,country) => country != null && country != "Unknown"}
+
+val albums:RDD[(String,Int)] = sc.cassandraTable(KEYSPACE, ALBUMS)
+    .select("performer","year")
+    .as((_:String,_:Int))
+    .filter{case(_,year) => year >= 1900}
+
+
+//Join performers with albums
+val join: RDD[(String, (String, Int))] = performers.join(albums)
+
+join
+    //RDD into a ((decade,country),1) using the computeDecade() pre-defined function
+    .map { case(performer,(country,year)) => ((computeDecade(year),country),1) }
+    //Reduce by key to count the number of occurrence for each key (decade,country)
+    .reduceByKey{case(left,right) => left+right}
+    //Flatten the tuple to (decade,country,count) triplet
+    .map { case((decade,country),count) => (decade,country,count)}
+    .saveToCassandra(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY, SomeColumns("decade","country","album_count"))
+
+</code></pre>
+        </tab>
+        <tab heading="Java 8">
+<pre><code class="java">
+JavaSparkContext sc = buildSparkContext(EXERCISE_4);
+
+/*
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   ...
+ *   country TEXT,
+ *   ...,
+ *   PRIMARY KEY(name)
+ * );
+ *
+ *
+ * CREATE TABLE IF NOT EXISTS albums (
+ *   ...
+ *   year INT,
+ *   performer TEXT,
+ *   ...,
+ * );
+ */
+JavaPairRDD&lt;String, String&gt; performers = javaFunctions(sc)
+    .cassandraTable(KEYSPACE, PERFORMERS)
+    .select("name", "country")
+    .filter(row -> {
+        String country = row.getString("country");
+        return country != null && !country.equals("Unknown");
+    })
+    .mapToPair(row -> new Tuple2(row.getString("name"), row.getString("country")));
+
+JavaPairRDD&lt;String, Integer&gt; albums = javaFunctions(sc)
+    .cassandraTable(KEYSPACE, ALBUMS)
+    .select("performer", "year")
+    .filter(row -> row.getInt("year") &gt;= 1900)
+    .mapToPair(row -> new Tuple2(row.getString("performer"), row.getInt("year")));
+
+
+//Join performers with albums
+final JavaPairRDD&lt;String, Tuple2&lt;String, Integer&gt;&gt; joins = performers.join(albums);
+
+
+final JavaRDD&lt;AlbumByDecadeAndCountry&gt; result = joins
+    // Map RDD into a ((decade,country),1) using the computeDecade() pre-defined function
+    .mapToPair(join -> new Tuple2&lt;&gt;(new Tuple2&lt;&gt;(computeDecade(join._2()._2()), join._2()._1()), 1))
+    // Reduce by key to count the number of occurrence for each key (decade,country)
+    .reduceByKey((left, right) -> left+right)
+    // Map the tuple into AlbumByDecadeAndCountry POJO
+    .map(grouped -> new AlbumByDecadeAndCountry(grouped._1()._1(), grouped._1()._2(), grouped._2()));
+
+// Save back to Cassandra
+javaFunctions(result)
+    .writerBuilder(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY, mapToRow(AlbumByDecadeAndCountry.class))
+    .saveToCassandra();
+
+</code></pre>
+        </tab>
+    </tabset>
+
+</div>

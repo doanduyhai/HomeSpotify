@@ -1,0 +1,129 @@
+<div class="row">
+
+    Now we want to perform joins using <strong>SparkSQL</strong> instead of Spark code to make our life easier
+
+    For this, you should use a <strong>SparkSQL</strong> query to
+    <ol>
+        <li>register the function <strong>computeDecade()</strong> as an <strong>SparkSQL</strong> function</li>
+        <li>SELECT date from table <strong>performers</strong> and table <strong>albums</strong></li>
+        <li>JOIN both tables on performer name</li>
+        <li>filter our lines with <em>"performers.country"</em> = null (using <em>country IS NULL</em> syntax) or <em>"country"</em>=<em>"Unknown"</em></li>
+        <li>keeping only lines with <em>"albums.year"</em> &gt;= 1900</li>
+        <li>group by decade and country using the  <strong>computeDecade(year)</strong> registered previously</li>
+        <li>having <em>count(albums.title)>=250</em> to filter out low count countries</li>
+        <li>map the returned <em>SchemaRDD</em> into a triplet (decade,country,count)</li>
+        <li>save data back into the <strong>albums_by_decade_and_country_sql</strong> table</li>
+    </ol>
+
+    <tabset>
+        <tab heading="Scala">
+<pre><code class="scala">
+val sc = buildSparkContext(EXERCISE_5)
+
+// Create an new Cassandra SQL context
+val cc = new CassandraSQLContext(sc)
+
+// Set the Cassandra keyspace to be used
+cc.setKeyspace(KEYSPACE)
+
+// Register computeDecade() as a SparkSQL function
+cc.registerFunction("computeDecade", computeDecade _)
+
+/*
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   ...
+ *   country TEXT,
+ *   ...
+ * );
+ *
+ *
+ * CREATE TABLE IF NOT EXISTS albums (
+ *   ...
+ *   title TEXT,
+ *   year INT,
+ *   performer TEXT,
+ *   ...
+ * );
+ *
+ *  - SELECT computeDecade(album release year),artist country, count(album title)
+ *  - FROM performers & albums JOINING on performers.name=albums.performer
+ *  - WHERE performer' country is not null and different than 'Unknown'
+ *  - AND album' release year is greater or equal to 1900
+ *  - GROUP BY computeDecade(album release year) and artist country
+ *  - HAVING count(albums title)>250 to filter out low values count countries
+ */
+
+//TODO
+val query: String = """
+    SELECT ???
+    ???
+    """.stripMargin
+
+// Execute the SQL statement against Cassandra and Spark
+val rows: SchemaRDD = cc.cassandraSql(query)
+
+// Map back the Schema RDD into a triplet (decade,country,count)
+rows.map(row => (row(0),row(1),row(2)))
+    .saveToCassandra(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY_SQL, SomeColumns("decade","country","album_count"))
+
+</code></pre>
+        </tab>
+        <tab heading="Java 8">
+<pre><code class="java">
+SparkContext sc = new SparkContext(buildScalaSparkConf(EXERCISE_5));
+
+final CassandraSQLContext sqlContext = new CassandraSQLContext(sc);
+
+// Set the Cassandra keyspace to be used
+sqlContext.setKeyspace(KEYSPACE);
+
+// Register computeDecade() as a SparkSQL function
+sqlContext.registerFunction("computeDecade", new Exercise5.ComputeDecadeFn(), typeTag(String.class));
+
+/*
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   ...
+ *   country TEXT,
+ *   ...
+ * );
+ *
+ *
+ * CREATE TABLE IF NOT EXISTS albums (
+ *   ...
+ *   title TEXT,
+ *   year INT,
+ *   performer TEXT,
+ *   ...
+ * );
+ *
+ *  - SELECT computeDecade(album release year),artist country, count(album title)
+ *  - FROM performers & albums JOINING on performers.name=albums.performer
+ *  - WHERE performer' country is not null and different than 'Unknown'
+ *  - AND album' release year is greater or equal to 1900
+ *  - GROUP BY computeDecade(album release year) and artist country
+ *  - HAVING count(albums title)&gt;250 to filter out low values count countries
+ */
+
+//TODO
+String query = " SELECT ???" +
+    "      ???";
+
+// Execute the SQL statement against Cassandra and Spark
+final SchemaRDD schemaRDD = sqlContext.cassandraSql(query);
+
+final JavaRDD&lt;Row&gt; javaRDD = JavaRDD.fromRDD(schemaRDD, JavaApiHelper.getClassTag(Row.class));
+
+// Map back the Schema RDD into a the AlbumByDecadeAndCountry POJO
+final JavaRDD&lt;AlbumByDecadeAndCountry&gt; mapped = javaRDD.map(row -> new AlbumByDecadeAndCountry(row.getString(0), row.getString(1), new Long(row.getLong(2)).intValue()));
+
+// Save back to Cassandra
+javaFunctions(mapped)
+    .writerBuilder(KEYSPACE,ALBUMS_BY_DECADE_AND_COUNTRY_SQL,mapToRow(AlbumByDecadeAndCountry.class))
+    .saveToCassandra();
+
+</code></pre>
+        </tab>
+    </tabset>
+</div>

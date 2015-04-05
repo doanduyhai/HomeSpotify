@@ -1,0 +1,22 @@
+<div class="row" ng-controller="Exercise2Ctrl">
+    <div ng-include="'views/templates/verifyResults.html'"></div>
+    <div class="row">
+        <div class="col-md-6 text-center">
+            <h3>Style distribution for groups</h3>
+
+            <div ng-show="correctResults" id="distribution_by_group_chart"></div>
+
+            <div ng-show="!correctResults">
+                <img class="img-rounded" src="images/todo.gif">
+            </div>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>Style distribution for artists</h3>
+            <div ng-show="correctResults" id="distribution_by_artist_chart"></div>
+
+            <div ng-show="!correctResults">
+                <img class="img-rounded" src="images/todo.gif">
+            </div>
+        </div>
+    </div>
+</div>

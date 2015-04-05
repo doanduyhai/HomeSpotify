@@ -1,0 +1,50 @@
+<div class="row" ng-controller="Exercise1Ctrl">
+    <div ng-include="'views/templates/verifyResults.html'"></div>
+    <div class="row">
+        <div class="col-md-3">
+            <h3>Music style</h3>
+            <select id="musicStyle" class="form-control"
+                    ng-change="changeStyle(selectedStyle)"
+                    ng-options="style for style in styles"
+                    ng-model="selectedStyle">
+
+            </select>
+            <h3>Filter by name</h3>
+            <input type="text"
+                   class="form-control"
+                   ng-model="nameFilter"
+                   ng-change="filterByName()"
+                   debounce="500"
+                   placeholder="Filter performer name here ...">
+        </div>
+        <div class="col-md-9">
+            <h3>Performers</h3>
+            <table class="table table-striped table-bordered">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Performer</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="performer in paginatedPerformers">
+                    <td>{{(currentPage - 1)*itemsPerPage + $index + 1}}</td>
+                    <td>{{performer}}</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <pagination total-items="filteredPerformers.length"
+                        items-per-page="itemsPerPage"
+                        ng-model="currentPage"
+                        ng-change="pageChanged()"
+                        max-size="7"
+                        boundary-links="true"
+                        previous-text="&lsaquo;"
+                        next-text="&rsaquo;"
+                        first-text="&laquo;"
+                        last-text="&raquo;"
+                    ></pagination>
+        </div>
+    </div>
+</div>

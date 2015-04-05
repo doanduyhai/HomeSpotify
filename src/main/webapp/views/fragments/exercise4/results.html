@@ -1,0 +1,23 @@
+<div class="row" ng-controller="Exercise4Ctrl">
+    <div ng-include="'views/templates/verifyResults.html'"></div>
+    <div class="row">
+        <div class="col-md-3 text-center">
+            <h3>Decade</h3>
+            <select class="form-control"
+                    ng-change="changeDecade(selectedDecade)"
+                    ng-options="decade for decade in decades"
+                    ng-model="selectedDecade"></select>
+            <h3>Filter out low value countries</h3>
+            <slider floor="0" ceiling="500" step="20" precision="20"
+                    ng-model="lowThreshold"></slider>
+        </div>
+        <div class="col-md-9 text-center">
+            <h3>Country distribution for decade {{selectedDecade}}</h3>
+            <div ng-show="correctResults" id="country_distribution_chart"></div>
+
+            <div ng-show="!correctResults">
+                <img src="images/todo.gif" class="img-rounded">
+            </div>
+        </div>
+    </div>
+</div>

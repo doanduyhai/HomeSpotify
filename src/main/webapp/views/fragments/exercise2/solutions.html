@@ -1,0 +1,102 @@
+<div class="row">
+    <h3>The solution</h3>
+    <tabset>
+        <tab heading="Scala">
+<pre><code class="scala">
+val sc = buildSparkContext(EXERCISE_2)
+
+/*
+ * Read columns "type" and "styles" from table 'performers'
+ * and save them as (String,List[String]) RDDs
+ * using the .as((_:String,_:List[String])) type conversion function
+ * Normalize the performer type by filtering out 'Unknown' types
+ */
+val rdd:RDD[(String,List[String])] = sc.cassandraTable(KEYSPACE, PERFORMERS)
+    .select("type","styles")
+    .as((_:String,_:List[String]))
+    .map{case(performer_type,style) => (PERFORMERS_TYPES.getOrElse(performer_type,"Unknown"),style)}
+    .filter{case(performer_type,_) => performer_type != "Unknown"}
+
+
+/*
+ * Transform the previous tuple RDDs into a key/value RDD (PairRDD) of type
+ * ((String,String),Integer). The (String,String) pair is the key(performer type,style)
+ * The Integer value should be set to 1 for each element of the RDD
+ */
+val pairs:RDD[((String,String),Int)] = rdd.flatMap{
+    case(performer_type,styles)=>styles.map(style => ((performer_type,style),1))
+}
+
+/*
+ * Reduce the previous tuple of ((performer type,style),1) by
+ * adding up all the 1's into a  ((performer type,style),count)
+ */
+val reduced: RDD[((String, String), Int)] = pairs.reduceByKey{ case(left,right) => left+right}
+
+/*
+ * Flatten the ((performer type,style),count) into
+ *  (performer type,style,count)
+ */
+val aggregated:RDD[(String,String,Int)] = reduced.map{
+    case((performer_type,style),count) => (performer_type,style,count)
+}
+
+
+//Save data back to the performers_distribution_by_style table
+aggregated.saveToCassandra(KEYSPACE, PERFORMERS_DISTRIBUTION_BY_STYLE, SomeColumns("type","style","count"))
+
+</code></pre>
+        </tab>
+        <tab heading="Java 8">
+<pre><code class="java">
+JavaSparkContext sc = buildSparkContext(EXERCISE_2);
+
+/*
+ * Read columns "type" and "styles" from table 'performers'
+ * and save them as (String,List[String]) RDDs
+ * using the .as((_:String,_:List[String])) type conversion function
+ * Normalize the performer type by filtering out 'Unknown' types
+ */
+JavaRDD&lt;Tuple2&lt;String,List&lt;String&gt;&gt;&gt; rows = javaFunctions(sc)
+    .cassandraTable(KEYSPACE, PERFORMERS)
+    .select("type", "styles")
+    .map(row -> new Tuple2&lt;String, List&lt;String&gt;&gt;(PERFORMERS_TYPES.getOrDefault(row.getString("type"), "Unknown"),
+        row.getList("styles", typeConverter(String.class)))
+    )
+    .filter(tuple -> !tuple._1().equals("Unknown"));
+
+/*
+ * Transform the previous tuple RDDs into a key/value RDD (PairRDD) of type
+ * ((String,String),Integer). The (String,String) pair is the key(performer type,style)
+ * The Integer value should be set to 1 for each element of the RDD
+ */
+final JavaPairRDD&lt;Tuple2&lt;String, String&gt;, Integer&gt; pairs = rows
+    .flatMapToPair(tuple -> tuple.&lt;List&lt;String&gt;&gt;_2()
+    .stream()
+    .map(style -> new Tuple2&lt;&gt;(new Tuple2&lt;String, String&gt;(tuple._1(), style), 1))
+    .collect(Collectors.toList()));
+
+/*
+ * Reduce the previous tuple of ((performer type,style),1) by
+ * adding up all the 1's into a  ((performer type,style),count)
+ */
+final JavaPairRDD&lt;Tuple2&lt;String,String&gt;, Integer&gt; reduced = pairs
+    .reduceByKey((left, right) -> left + right);
+
+/*
+ * Map the ((performer type,style),count) into the PerformerDistributionByStyle POJO
+ */
+final JavaRDD&lt;PerformerDistributionByStyle&gt; performersDistributionByStyle = reduced
+    .map(tuple -> new PerformerDistributionByStyle(tuple._1()._1(),tuple._1()._2(),tuple._2()) );
+
+// Save data back to the performers_distribution_by_style table
+javaFunctions(performersDistributionByStyle)
+    .writerBuilder(KEYSPACE, PERFORMERS_DISTRIBUTION_BY_STYLE,
+        mapToRow(PerformerDistributionByStyle.class))
+    .saveToCassandra();
+
+</code></pre>
+        </tab>
+    </tabset>
+
+</div>

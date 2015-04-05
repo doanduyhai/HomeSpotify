@@ -1,0 +1,105 @@
+<div class="row">
+    Considering the existing table in Cassandra:  <em>performers</em>
+    <br/>
+<pre><code class="sql">
+/*
+ * performers table structure
+ *
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   country TEXT,
+ *   gender TEXT,
+ *   type TEXT,
+ *   born TEXT,
+ *   died TEXT,
+ *   styles LIST&lt;TEXT&gt;,
+ *   PRIMARY KEY (name)
+ * );
+ */
+</code></pre>
+
+    The aim is to extract each performer and its <strong>style</strong> and fill the empty table <strong>performers_by_style</strong>
+<pre><code class="sql">
+CREATE TABLE performers_by_style (
+    style TEXT,
+    performer TEXT,
+    PRIMARY KEY (style, performer)
+);
+</code></pre>
+
+    For this, you should use a <strong>Spark</strong> transformation pipeline, reading data from <strong>Cassandra</strong> and writing data back to <strong>Cassandra</strong>
+
+    <tabset>
+        <tab heading="Scala">
+<pre><code class="scala">
+// Create a Spark context
+val sc = buildSparkContext(EXERCISE_1)
+
+/*
+ * performers table structure
+ *
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   country TEXT,
+ *   gender TEXT,
+ *   type TEXT,
+ *   born TEXT,
+ *   died TEXT,
+ *   styles LIST&lt;TEXT&gt;,
+ *   PRIMARY KEY (name)
+ * );
+ */
+val rdd:CassandraRDD[CassandraRow] = sc.cassandraTable(KEYSPACE, PERFORMERS)
+
+/*
+ * Transform a CassandraRow object into the PerformerByStyle POJO
+ * Use the API row.getString("column name"), row.getInt("column name") ...
+ * to extract typed values from the Cassandra Row
+ */
+val performerAndStyle:RDD[(String,String)] = ??? //TODO
+
+// Save data back to Cassandra
+performerAndStyle.saveToCassandra(KEYSPACE,PERFORMERS_BY_STYLE,SomeColumns("style","performer"))
+
+</code></pre>
+        </tab>
+        <tab heading="Java 8">
+<pre><code class="java">
+JavaSparkContext sc = buildSparkContext(EXERCISE_1);
+
+/*
+ * performers table structure
+ *
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   country TEXT,
+ *   gender TEXT,
+ *   type TEXT,
+ *   born TEXT,
+ *   died TEXT,
+ *   styles LIST&lt;TEXT&gt;,
+ *   PRIMARY KEY (name)
+ * );
+ */
+final JavaRDD&lt;CassandraRow&gt; rows = javaFunctions(sc).cassandraTable(KEYSPACE, PERFORMERS);
+
+final JavaRDD&lt;PerformerByStyle&gt; performerAndStyles =rows
+    //TODO Transform a CassandraRow object into a Tuple2&lt;&gt;(performer,list of styles)
+    //TODO Use the API CassandraRow.getString("???")
+    //TODO and CassandraRow.getList("???",CassandraJavaUtil.typeConverter(???.class)) ...
+    .map(row -> new Tuple2&lt;String,List&lt;String&gt;&gt;(null, null))
+    //TODO Extract all styles for each performer using flatMap
+    //TODO and create the POJO PerformerByStyle
+    .flatMap(tuple -> tuple._2()
+    .stream()
+    .map(style -> (PerformerByStyle) null)
+    .collect(toList()));
+
+// Save data back to Cassandra
+javaFunctions(performerAndStyles).writerBuilder(KEYSPACE, PERFORMERS_BY_STYLE, mapToRow(PerformerByStyle.class))
+    .saveToCassandra();
+
+</code></pre>
+        </tab>
+    </tabset>
+</div>

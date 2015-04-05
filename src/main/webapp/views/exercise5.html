@@ -1,0 +1,30 @@
+<div class="row">
+    <accordion close-others="false">
+        <accordion-group is-open="openInstruction">
+            <accordion-heading>
+                Instructions <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': openInstruction, 'glyphicon-chevron-right': !openInstruction}"></i>
+            </accordion-heading>
+            <div ng-include="'views/fragments/exercise5/instructions.html'"></div>
+        </accordion-group>
+        <accordion-group is-open="openResult">
+            <accordion-heading>
+                Results <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': openResult, 'glyphicon-chevron-right': !openResult}"></i>
+            </accordion-heading>
+            <div ng-include="'views/fragments/exercise5/results.html'"></div>
+        </accordion-group>
+        <accordion-group is-open="openHints">
+            <accordion-heading>
+                I'm stuck, help me! <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': openHints, 'glyphicon-chevron-right': !openHints}"></i>
+            </accordion-heading>
+            <div ng-include="'views/fragments/exercise5/hints.html'"></div>
+        </accordion-group>
+        <accordion-group is-open="openSolution">
+            <accordion-heading>
+                Solutions <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': openSolution, 'glyphicon-chevron-right': !openSolution}"></i>
+            </accordion-heading>
+            <div ng-include="'views/fragments/exercise5/solutions.html'"></div>
+
+        </accordion-group>
+
+    </accordion>
+</div>

@@ -1,0 +1,13 @@
+<div ng-class="{'row alert bg-success': correctResults, 'row alert bg-danger plain-height':!correctResults}">
+    <button type="button" class="btn btn-primary" ng-click="reload()">
+        Reload
+    </button>
+    &nbsp;&nbsp;
+        <span ng-if="!correctResults" class="alert-danger">
+            <strong>KO</strong>: Please finish the exercise first
+        </span>
+        <span ng-if="correctResults" class="alert-success">
+            <span class="badge alert-success">OK</span>
+            You successfully complete the exercise !
+        </span>
+</div>

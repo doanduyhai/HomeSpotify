@@ -1,0 +1,22 @@
+<div class="row" ng-controller="Exercise3Ctrl">
+    <div ng-include="'views/templates/verifyResults.html'"></div>
+    <div class="row">
+        <div class="col-md-6 text-center">
+            <h3>Top 10 styles for groups</h3>
+
+            <div ng-show="correctResults" id="top10_by_group_chart"></div>
+
+            <div ng-show="!correctResults">
+                <img class="img-rounded" src="images/todo.gif">
+            </div>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>Top 10 styles for artists</h3>
+            <div ng-show="correctResults" id="top10_by_artist_chart"></div>
+
+            <div ng-show="!correctResults">
+                <img class="img-rounded" src="images/todo.gif">
+            </div>
+        </div>
+    </div>
+</div>

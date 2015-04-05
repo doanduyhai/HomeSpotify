@@ -1,0 +1,190 @@
+<div class="row">
+
+    We can improve the previous distribution by displaying only the top 10 most important
+    music styles by group &amp; artist, and group all other styles in a <em>"Others"</em> category
+
+    Considering the existing table in Cassandra:  <strong>top10_styles</strong>
+    <br/>
+<pre><code class="sql">
+CREATE TABLE IF NOT EXISTS top10_styles (
+    type text,
+    count int,
+    style text,
+    PRIMARY KEY (type, count)
+) WITH CLUSTERING ORDER BY (count DESC);
+</code></pre>
+
+    The objective is to fill this table with data coming from <strong>performers_distribution_by_style</strong>
+<pre><code class="sql">
+CREATE TABLE home_spotify.performers_distribution_by_style (
+    type text,
+    style text,
+    "count" int,
+    PRIMARY KEY (type, style)
+) WITH CLUSTERING ORDER BY (style ASC);
+</code></pre>
+
+    For this, you should use a <strong>Spark</strong> transformation pipeline to
+    <ol>
+        <li>read existing distribution data from table <strong>performers_distribution_by_style</strong> </li>
+        <li>filter out 'Unknown' music style</li>
+        <li>sort (performer_type,style) by their count, in a descending order (highest count first)</li>
+        <li>cache the RDD using the <strong>cache()</strong> method to avoid recomputing it</li>
+        <li>filter the cached RDD by performer_type (<em>group</em> or <em>artist</em>)</li>
+        <li>for each performer_type <strong>RDD</strong>:
+            <ol>
+                <li>cache() it</li>
+                <li>drop the top 10 music styles to compute the sum of artists for all remaining styles (<em>"Others"</em>)</li>
+                <li>take the top 10 music styles and merge with the (<em>"Others"</em>) styles</li>
+            </ol>
+        </li>
+        <li>merge each of the previous RDDs into a single list</li>
+        <li>save data back into the <strong>top10_styles</strong> table</li>
+    </ol>
+
+    <tabset>
+        <tab heading="Scala">
+<pre><code class="scala">
+val sc = buildSparkContext(EXERCISE_3)
+
+/*
+ * Read data from 'performers_distribution_by_style' table
+ */
+val artists:CassandraRDD[(String,String,Int)] = sc
+    .cassandraTable(KEYSPACE, PERFORMERS_DISTRIBUTION_BY_STYLE)
+    .select("type","style","count")
+    .as((_:String,_:String,_:Int))
+
+val sortedPerformers:RDD[(String,String,Int)] = artists
+    .filter(???) //TODO Filter out the 'Unknown' style
+    .sortBy[Int](???,false,1) //TODO Sort by count, highest count fist
+
+// Put the sorted RDD in cache for re-use
+sortedPerformers.cache()
+
+// Extract styles for groups
+val groupsStyles: RDD[(String, String, Int)] = sortedPerformers
+    .filter(???) //TODO Take only 'group' type
+
+// Extract styles for artists
+val artistStyles: RDD[(String, String, Int)] = sortedPerformers
+    .filter(???) //TODO Take only 'artist' type
+
+// Cache the groupStyles
+groupsStyles.cache()
+
+// Cache the artistStyles
+artistStyles.cache()
+
+// Count total number of artists having styles that are not in the top 10
+val otherStylesCountForGroup:Int = groupsStyles
+    .collect()  //Fetch the whole RDD back to driver program
+    .drop(???) //TODO drop the first 10 top styles
+    .map[Int,Array[Int]](???) //TODO extract the count
+    .sum //Sum up the count
+
+// Count total number of groups having styles that are not in the top 10
+val otherStylesCountForArtist:Int = artistStyles
+    .collect() //Fetch the whole RDD back to driver program
+    .drop(???) //TODO drop the first 10 top styles
+    .map[Int,Array[Int]](???) //TODO extract the count
+    .sum //Sum up the count
+
+
+// Take the top 10 styles for groups, with a count for all other styles
+val top10Groups = groupsStyles.take(10) :+ ("group","Others",otherStylesCountForGroup)
+
+// Take the top 10 styles for artists, with a count for all other styles
+val top10Artists = artistStyles.take(10) :+ ("artist","Others",otherStylesCountForArtist)
+
+/*
+ * Remark: by calling take(n), all the data are shipped back to the driver program
+ * the output of take(n) is no longer an RDD but a simple Scala collection
+ */
+
+// Merge both list and save back to Cassandra
+sc.parallelize(top10Artists.toList ::: top10Groups.toList)
+    .saveToCassandra(KEYSPACE,TOP_10_STYLES,SomeColumns("type","style","count"))
+</code></pre>
+        </tab>
+        <tab heading="Java 8">
+<pre><code class="java">
+JavaSparkContext sc = buildSparkContext(EXERCISE_3);
+
+/*
+ * Read data from 'performers_distribution_by_style' table
+ * and map to the PerformerDistributionByStyle POJO
+ */
+JavaRDD&lt;PerformerDistributionByStyle&gt; rows = javaFunctions(sc)
+    .cassandraTable(KEYSPACE, PERFORMERS_DISTRIBUTION_BY_STYLE)
+    .select("type", "style", "count")
+    .map(row -> new PerformerDistributionByStyle(row.getString("type"),
+            row.getString("style"),
+            row.getInt("count")));
+
+
+JavaRDD&lt;PerformerDistributionByStyle&gt; sortedPerformerDistribution = rows
+    .filter(p -> (Boolean)null) //TODO Filter out the 'Unknown' style
+    .sortBy(p -> (Integer)null, (Boolean)null, 1); //TODO Sort by count, highest count fist
+
+// Put the sorted RDD in cache for re-use
+sortedPerformerDistribution.cache();
+
+// Extract styles for groups
+final JavaRDD&lt;PerformerDistributionByStyle&gt; groupStyles = sortedPerformerDistribution
+    .filter(bean -> (Boolean)null); //TODO Take only 'group' type
+
+// Extract styles for artists
+final JavaRDD&lt;PerformerDistributionByStyle&gt; artistStyles = sortedPerformerDistribution
+    .filter(bean -> (Boolean)null); //TODO Take only 'artist' type
+
+// Cache the groupStyles
+groupStyles.cache();
+
+// Cache the artistStyles
+artistStyles.cache();
+
+// Count total number of artists having styles that are not in the top 10
+final int otherStylesCountForGroup = groupStyles
+    .collect()   //Fetch the whole RDD back to driver program
+    .stream()
+    .skip((Integer)null)  //TODO Drop the first 10 top styles
+    .mapToInt(bean -> (Integer)null) //TODO Extract the count
+    .sum();
+
+// Count total number of groups having styles that are not in the top 10
+final int otherStylesCountForArtist = artistStyles
+    .collect()   //Fetch the whole RDD back to driver program
+    .stream()
+    .skip((Integer)null)  //TODO Drop the first 10 top styles
+    .mapToInt(bean -> (Integer)null) //TODO Extract the count
+    .sum();
+
+
+// Take the top 10 styles for groups, with a count for all other styles
+final List&lt;PerformerDistributionByStyle&gt; top10Groups = groupStyles.take(10);
+top10Groups.add(new PerformerDistributionByStyle("group", "Others", otherStylesCountForGroup));
+
+// Take the top 10 styles for artists, with a count for all other styles
+final List&lt;PerformerDistributionByStyle&gt; top10Artists = artistStyles.take(10);
+top10Artists.add(new PerformerDistributionByStyle("artist", "Others", otherStylesCountForArtist));
+
+
+/*
+* Remark: by calling take(n), all the data are shipped back to the driver program
+* the output of take(n) is no longer an RDD but a simple Java collection
+*/
+
+// Merge both top10 lists
+JavaRDD&lt;PerformerDistributionByStyle&gt; merged = sc.parallelize(top10Artists)
+    .union(sc.parallelize(top10Groups));
+
+// Save back to Cassandra
+javaFunctions(merged)
+    .writerBuilder(KEYSPACE, TOP_10_STYLES,
+        CassandraJavaUtil.mapToRow(PerformerDistributionByStyle.class))
+    .saveToCassandra();
+</code></pre>
+        </tab>
+    </tabset>
+</div>

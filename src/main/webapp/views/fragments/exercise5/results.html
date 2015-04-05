@@ -1,0 +1,11 @@
+<div class="row" ng-controller="Exercise5Ctrl">
+    <div ng-include="'views/templates/verifyResults.html'"></div>
+    <div class="row">
+        <h3>Country distribution by decade</h3>
+        <div ng-show="correctResults" id="country_distribution_by_decade_chart"></div>
+
+        <div ng-show="!correctResults">
+            <img src="images/todo.gif" class="img-rounded">
+        </div>
+    </div>
+</div>

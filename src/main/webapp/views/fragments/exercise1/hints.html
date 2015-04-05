@@ -1,0 +1,72 @@
+<div class="row">
+    <h3>Some hints if you're stuck</h3>
+    <tabset>
+        <tab heading="Scala">
+<pre><code class="scala">
+val sc = buildSparkContext(EXERCISE_1)
+
+/*
+ * performers table structure
+ *
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   country TEXT,
+ *   gender TEXT,
+ *   type TEXT,
+ *   born TEXT,
+ *   died TEXT,
+ *   styles LIST&lt;TEXT&gt;,
+ *   PRIMARY KEY (name)
+ * );
+ */
+val rdd:CassandraRDD[CassandraRow] = sc.cassandraTable(KEYSPACE, PERFORMERS)
+
+val performerAndStyles:RDD[(String,String)] = rdd
+    .map[(String,List[String])](row => (row.getString("???"),row.getList[String]("???").toList))
+    .flatMap[(String,String)]{ case (performer,styles) => styles.map(style => (style,performer))}
+
+//Save data back to Cassandra
+performerAndStyles.saveToCassandra(KEYSPACE,PERFORMERS_BY_STYLE,SomeColumns("style","performer"))
+
+</code></pre>
+        </tab>
+        <tab heading="Java 8">
+<pre><code class="java">
+JavaSparkContext sc = buildSparkContext(EXERCISE_1);
+
+/*
+ * performers table structure
+ *
+ * CREATE TABLE IF NOT EXISTS performers (
+ *   name TEXT,
+ *   country TEXT,
+ *   gender TEXT,
+ *   type TEXT,
+ *   born TEXT,
+ *   died TEXT,
+ *   styles LIST&lt;TEXT&gt;,
+ *   PRIMARY KEY (name)
+ * );
+ */
+final JavaRDD&lt;CassandraRow&gt; rows = javaFunctions(sc).cassandraTable(KEYSPACE, PERFORMERS);
+
+final JavaRDD&lt;PerformerByStyle&gt; performerAndStyles =rows
+    //TODO Transform a CassandraRow object into a Tuple2&lt;&gt;(performer,list of styles)
+    //TODO Use the API CassandraRow.getString("???")
+    //TODO and CassandraRow.getList("???",CassandraJavaUtil.typeConverter(???.class)) ...
+    .map(row -> new Tuple2&lt;String, List&lt;String&gt;&gt;(row.getString("???"), row.getList("???", typeConverter(???.class))))
+    //TODO Extract all styles for each performer using flatMap
+    //TODO and create the POJO PerformerByStyle
+    .flatMap(tuple -> tuple._2()
+        .stream()
+        .map((String musicStyle) -> new PerformerByStyle(???,???))
+        .collect(toList()));
+
+// Save data back to Cassandra
+javaFunctions(performerAndStyles).writerBuilder(KEYSPACE, PERFORMERS_BY_STYLE, mapToRow(PerformerByStyle.class))
+    .saveToCassandra();
+</code></pre>
+        </tab>
+    </tabset>
+
+</div>
