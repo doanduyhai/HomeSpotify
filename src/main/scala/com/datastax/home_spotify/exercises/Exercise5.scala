@@ -3,23 +3,43 @@ package com.datastax.home_spotify.exercises
 import com.datastax.home_spotify.exercises.Constants._
 import com.datastax.home_spotify.exercises.Schema._
 import com.datastax.spark.connector._
-import org.apache.spark.sql.SchemaRDD
-import org.apache.spark.sql.cassandra.CassandraSQLContext
+import org.apache.spark.sql.{DataFrame, SQLContext}
 
 object Exercise5 extends BaseExercise {
+
+  case class AlbumByDecadeAndCountry(decade: String, country: String, albumCount: Long)
 
   def main (args: Array[String]) {
 
     val sc = buildSparkContext(EXERCISE_5)
+    val sqlContext: SQLContext = new org.apache.spark.sql.SQLContext(sc)
 
-    // Create an new Cassandra SQL context
-    val cc = new CassandraSQLContext(sc)
+    // Register performers in DataFrame
+    sqlContext.sql(
+      s"""
+       |CREATE TEMPORARY TABLE performers
+       | USING org.apache.spark.sql.cassandra
+       | OPTIONS (
+       |   keyspace "$KEYSPACE",
+       |   table "$PERFORMERS",
+       |   pushdown "true"
+       | )
+      """.stripMargin)
 
-    // Set the Cassandra keyspace to be used
-    cc.setKeyspace(KEYSPACE)
+    // Register albums in DataFrame
+    sqlContext.sql(
+      s"""
+       |CREATE TEMPORARY TABLE albums
+       | USING org.apache.spark.sql.cassandra
+       | OPTIONS (
+       |   keyspace "$KEYSPACE",
+       |   table "$ALBUMS",
+       |   pushdown "true"
+       | )
+      """.stripMargin)
 
-    // Register computeDecade() as a SparkSQL function
-    cc.registerFunction("computeDecade", computeDecade _)
+    // Register computeDecade() as a DataFrame function
+    sqlContext.udf.register("computeDecade", computeDecade _)
 
     /*
      * CREATE TABLE IF NOT EXISTS performers (
@@ -53,12 +73,11 @@ object Exercise5 extends BaseExercise {
       """.stripMargin
 
     // Execute the SQL statement against Cassandra and Spark
-    val rows: SchemaRDD = cc.cassandraSql(query)
+    val rows: DataFrame = sqlContext.sql(query)
 
     // Map back the Schema RDD into a triplet (decade,country,count)
-    rows.map(row => (row(0),row(1),row(2)))
-      .saveToCassandra(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY_SQL, SomeColumns("decade","country","album_count"))
-
+    rows.map(row => AlbumByDecadeAndCountry(row.getString(0),row.getString(1),row.getLong(2)))
+      .saveToCassandra(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY_SQL)
     sc.stop()
   }
 
