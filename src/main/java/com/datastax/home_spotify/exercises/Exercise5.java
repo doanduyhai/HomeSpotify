@@ -1,39 +1,51 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
-import com.datastax.spark.connector.util.JavaApiHelper;
-import fr.ippon.home_spotify.entity.AlbumByDecadeAndCountry;
+import com.datastax.home_spotify.entity.AlbumByDecadeAndCountry;
+import scala.runtime.AbstractFunction1;
 
 import org.apache.spark.SparkContext;
 
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.SchemaRDD;
-import org.apache.spark.sql.cassandra.CassandraSQLContext;
-
-import org.apache.spark.sql.catalyst.expressions.Row;
-import scala.runtime.AbstractFunction1;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.SQLContext;
 
 import java.io.Serializable;
 
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
-import static com.datastax.spark.connector.japi.CassandraJavaUtil.typeTag;
-import static fr.ippon.home_spotify.exercises.Schema.*;
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_5;
+import static com.datastax.home_spotify.exercises.Constants.EXERCISE_5;
+
+import com.datastax.spark.connector.util.JavaApiHelper;
 
 public class Exercise5 extends BaseExercise {
+
 
     public static void main(String[] args) {
 
         SparkContext sc = new SparkContext(buildScalaSparkConf(EXERCISE_5));
+        final JavaSparkContext javaSc = new JavaSparkContext(sc);
+        final SQLContext sqlContext = new SQLContext(javaSc);
 
-        final CassandraSQLContext sqlContext = new CassandraSQLContext(sc);
 
-        // Set the Cassandra keyspace to be used
-        sqlContext.setKeyspace(KEYSPACE);
+        // Register performers in DataFrame
+        sqlContext.sql("CREATE TEMPORARY TABLE performers" +
+                " USING org.apache.spark.sql.cassandra" +
+                " OPTIONS (keyspace \"" + Schema.KEYSPACE + "\",  table \"" + Schema.PERFORMERS + "\", pushdown \"true\")");
+
+        // Register albums in DataFrame
+        sqlContext.sql("CREATE TEMPORARY TABLE albums" +
+                " USING org.apache.spark.sql.cassandra" +
+                " OPTIONS (keyspace \"" + Schema.KEYSPACE + "\",  table \"" + Schema.ALBUMS + "\", pushdown \"true\")");
 
         // Register computeDecade() as a SparkSQL function
-        sqlContext.registerFunction("computeDecade", new Exercise5.ComputeDecadeFn(), typeTag(String.class));
+        // Declare the UDF using the Scala API because of this bug
+        // https://issues.apache.org/jira/browse/SPARK-9435
+        sqlContext.udf().register("computeDecade", new Exercise5.ComputeDecadeFn(),
+                JavaApiHelper.getTypeTag(String.class),
+                JavaApiHelper.getTypeTag(Integer.class));
+
 
         /*
          * CREATE TABLE IF NOT EXISTS performers (
@@ -61,26 +73,26 @@ public class Exercise5 extends BaseExercise {
          */
 
 
-        String query = "SELECT computeDecade(a.year),p.country,count(a.title) " +
+        String query = "SELECT computeDecade(a.year) as cd, p.country, count(a.title) " +
             " FROM performers p JOIN albums a " +
             " ON p.name = a.performer " +
             " WHERE p.country is not null " +
             " AND p.country != 'Unknown' " +
             " AND a.year >= 1900 " +
-            " GROUP BY computeDecade(a.year),p.country " +
+            " GROUP BY computeDecade(a.year), p.country " +
             " HAVING count(a.title) > 250";
 
         // Execute the SQL statement against Cassandra and Spark
-        final SchemaRDD schemaRDD = sqlContext.cassandraSql(query);
+        final DataFrame dataFrame = sqlContext.sql(query);
 
-        final JavaRDD<Row> javaRDD = JavaRDD.fromRDD(schemaRDD, JavaApiHelper.getClassTag(Row.class));
-
-        // Map back the Schema RDD into a the AlbumByDecadeAndCountry POJO
-        final JavaRDD<AlbumByDecadeAndCountry> mapped = javaRDD.map(row -> new AlbumByDecadeAndCountry(row.getString(0), row.getString(1), new Long(row.getLong(2)).intValue()));
+        // Map back the DataFrame into a the AlbumByDecadeAndCountry POJO
+        final JavaRDD<AlbumByDecadeAndCountry> mapped = dataFrame
+                .javaRDD()
+                .map(row -> new AlbumByDecadeAndCountry(row.getString(0), row.getString(1), new Long(row.getLong(2)).intValue()));
 
         // Save back to Cassandra
         javaFunctions(mapped)
-                .writerBuilder(KEYSPACE,ALBUMS_BY_DECADE_AND_COUNTRY_SQL,mapToRow(AlbumByDecadeAndCountry.class))
+                .writerBuilder(Schema.KEYSPACE, Schema.ALBUMS_BY_DECADE_AND_COUNTRY_SQL, mapToRow(AlbumByDecadeAndCountry.class))
                 .saveToCassandra();
 
         sc.stop();
@@ -93,7 +105,6 @@ public class Exercise5 extends BaseExercise {
     }
 
     public static final class ComputeDecadeFn extends AbstractFunction1<Integer,String> implements Serializable {
-
         @Override
         public String apply(Integer year) {
             return computeDecade(year);

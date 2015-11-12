@@ -1,4 +1,4 @@
-package fr.ippon.home_spotify.entity;
+package com.datastax.home_spotify.entity;
 
 import java.io.Serializable;
 

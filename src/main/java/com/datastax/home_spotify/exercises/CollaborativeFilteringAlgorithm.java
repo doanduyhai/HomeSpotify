@@ -1,4 +1,4 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_6;
+import static com.datastax.home_spotify.exercises.Constants.EXERCISE_6;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;

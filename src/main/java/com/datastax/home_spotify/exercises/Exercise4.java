@@ -1,7 +1,7 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
 
-import fr.ippon.home_spotify.entity.AlbumByDecadeAndCountry;
+import com.datastax.home_spotify.entity.AlbumByDecadeAndCountry;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -10,15 +10,12 @@ import scala.Tuple2;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
-import static fr.ippon.home_spotify.exercises.Schema.*;
-
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_4;
 
 public class Exercise4 extends BaseExercise{
 
     public static void main(String[] args) {
 
-        JavaSparkContext sc = buildSparkContext(EXERCISE_4);
+        JavaSparkContext sc = buildSparkContext(Constants.EXERCISE_4);
 
         /*
          * CREATE TABLE IF NOT EXISTS performers (
@@ -38,7 +35,7 @@ public class Exercise4 extends BaseExercise{
          * );
          */
         JavaPairRDD<String, String> performers = javaFunctions(sc)
-                .cassandraTable(KEYSPACE, PERFORMERS)
+                .cassandraTable(Schema.KEYSPACE, Schema.PERFORMERS)
                 .select("name", "country")
                 .filter(row -> {
                     String country = row.getString("country");
@@ -47,7 +44,7 @@ public class Exercise4 extends BaseExercise{
                 .mapToPair(row -> new Tuple2(row.getString("name"), row.getString("country")));
 
         JavaPairRDD<String, Integer> albums = javaFunctions(sc)
-                .cassandraTable(KEYSPACE, ALBUMS)
+                .cassandraTable(Schema.KEYSPACE, Schema.ALBUMS)
                 .select("performer", "year")
                 .filter(row -> row.getInt("year") >= 1900)
                 .mapToPair(row -> new Tuple2(row.getString("performer"), row.getInt("year")));
@@ -67,7 +64,7 @@ public class Exercise4 extends BaseExercise{
 
         // Save back to Cassandra
         javaFunctions(result)
-            .writerBuilder(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY, mapToRow(AlbumByDecadeAndCountry.class))
+            .writerBuilder(Schema.KEYSPACE, Schema.ALBUMS_BY_DECADE_AND_COUNTRY, mapToRow(AlbumByDecadeAndCountry.class))
             .saveToCassandra();
 
         sc.stop();

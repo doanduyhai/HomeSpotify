@@ -1,4 +1,4 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
 public interface Schema {
     String KEYSPACE = "home_spotify";

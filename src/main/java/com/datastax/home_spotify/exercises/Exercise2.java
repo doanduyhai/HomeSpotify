@@ -1,7 +1,7 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
 import com.google.common.collect.ImmutableMap;
-import fr.ippon.home_spotify.entity.PerformerDistributionByStyle;
+import com.datastax.home_spotify.entity.PerformerDistributionByStyle;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -14,15 +14,14 @@ import java.util.stream.Collectors;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.typeConverter;
-import static fr.ippon.home_spotify.exercises.Schema.*;
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_2;
+
 public class Exercise2 extends BaseExercise {
 
     public static final Map<String,String> PERFORMERS_TYPES = ImmutableMap.of("Person","artist","Group","group");
 
     public static void main(String[] args) {
 
-        JavaSparkContext sc = buildSparkContext(EXERCISE_2);
+        JavaSparkContext sc = buildSparkContext(Constants.EXERCISE_2);
 
         /*
          * Read columns "type" and "styles" from table 'performers'
@@ -31,7 +30,7 @@ public class Exercise2 extends BaseExercise {
          * Normalize the performer type by filtering out 'Unknown' types
          */
         JavaRDD<Tuple2<String,List<String>>> rows = javaFunctions(sc)
-            .cassandraTable(KEYSPACE, PERFORMERS)
+            .cassandraTable(Schema.KEYSPACE, Schema.PERFORMERS)
             .select("type", "styles")
             .map(row -> new Tuple2<String, List<String>>(PERFORMERS_TYPES.getOrDefault(row.getString("type"), "Unknown"),
                             row.getList("styles", typeConverter(String.class)))
@@ -64,7 +63,7 @@ public class Exercise2 extends BaseExercise {
 
         // Save data back to the performers_distribution_by_style table
         javaFunctions(performersDistributionByStyle)
-            .writerBuilder(KEYSPACE, PERFORMERS_DISTRIBUTION_BY_STYLE,
+            .writerBuilder(Schema.KEYSPACE, Schema.PERFORMERS_DISTRIBUTION_BY_STYLE,
                     mapToRow(PerformerDistributionByStyle.class))
             .saveToCassandra();
     }

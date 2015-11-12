@@ -1,7 +1,8 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
+import com.datastax.home_spotify.entity.PerformerByStyle;
 import com.datastax.spark.connector.japi.CassandraRow;
-import fr.ippon.home_spotify.entity.PerformerByStyle;
+
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
@@ -12,15 +13,13 @@ import java.util.List;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.typeConverter;
-import static fr.ippon.home_spotify.exercises.Schema.*;
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_1;
 import static java.util.stream.Collectors.toList;
 
 public class Exercise1 extends BaseExercise {
 
     public static void main(String[] args) {
 
-        JavaSparkContext sc = buildSparkContext(EXERCISE_1);
+        JavaSparkContext sc = buildSparkContext(Constants.EXERCISE_1);
 
         /*
          * performers table structure
@@ -36,7 +35,7 @@ public class Exercise1 extends BaseExercise {
          *   PRIMARY KEY (name)
          * );
          */
-        final JavaRDD<CassandraRow> rows = javaFunctions(sc).cassandraTable(KEYSPACE, PERFORMERS);
+        final JavaRDD<CassandraRow> rows = javaFunctions(sc).cassandraTable(Schema.KEYSPACE, Schema.PERFORMERS);
 
         final JavaRDD<PerformerByStyle> performerAndStyles =rows
             //Transform a CassandraRow object into a Tuple2<>(performer,list of styles)
@@ -51,7 +50,7 @@ public class Exercise1 extends BaseExercise {
                     .collect(toList()));
 
         // Save data back to Cassandra
-        javaFunctions(performerAndStyles).writerBuilder(KEYSPACE, PERFORMERS_BY_STYLE, mapToRow(PerformerByStyle.class))
+        javaFunctions(performerAndStyles).writerBuilder(Schema.KEYSPACE, Schema.PERFORMERS_BY_STYLE, mapToRow(PerformerByStyle.class))
             .saveToCassandra();
     }
 

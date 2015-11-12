@@ -1,10 +1,8 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
-
-import static fr.ippon.home_spotify.exercises.Schema.*;
 
 public class Constants {
 
@@ -20,11 +18,11 @@ public class Constants {
     public static final String EXERCISE_6 = "exercise6";
 
     public static final Map<String,String> TABLES = ImmutableMap
-            .of(EXERCISE_1,PERFORMERS_BY_STYLE,
-                EXERCISE_2,PERFORMERS_DISTRIBUTION_BY_STYLE,
-                EXERCISE_3,TOP_10_STYLES,
-                EXERCISE_4,ALBUMS_BY_DECADE_AND_COUNTRY,
-                EXERCISE_5,ALBUMS_BY_DECADE_AND_COUNTRY_SQL);
+            .of(EXERCISE_1, Schema.PERFORMERS_BY_STYLE,
+                EXERCISE_2, Schema.PERFORMERS_DISTRIBUTION_BY_STYLE,
+                EXERCISE_3, Schema.TOP_10_STYLES,
+                EXERCISE_4, Schema.ALBUMS_BY_DECADE_AND_COUNTRY,
+                EXERCISE_5, Schema.ALBUMS_BY_DECADE_AND_COUNTRY_SQL);
 
 
 }
