@@ -1,4 +1,6 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
+
+import static com.datastax.home_spotify.exercises.Constants.*;
 
 import com.datastax.driver.core.Session;
 import com.datastax.spark.connector.cql.CassandraConnector;
@@ -7,12 +9,8 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Unit;
 import scala.runtime.AbstractFunction1;
-import scala.tools.nsc.typechecker.Implicits;
 
 import java.io.Serializable;
-
-import static fr.ippon.home_spotify.exercises.Constants.*;
-import static fr.ippon.home_spotify.exercises.Schema.*;
 
 public class BaseExercise {
 
@@ -37,7 +35,7 @@ public class BaseExercise {
             @Override
             public Unit apply(Session session) {
                 if (TABLES.containsKey(exerciseName)) {
-                    session.execute("TRUNCATE " + KEYSPACE + "." + TABLES.get(exerciseName));
+                    session.execute("TRUNCATE " + Schema.KEYSPACE + "." + TABLES.get(exerciseName));
                 }
                 return null;
             }

@@ -1,8 +1,12 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
-import com.datastax.spark.connector.japi.CassandraJavaUtil;
+import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
+import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
+import static com.datastax.spark.connector.japi.CassandraJavaUtil.typeConverter;
+import static com.datastax.home_spotify.exercises.Schema.*;
+
 import com.google.common.collect.ImmutableMap;
-import fr.ippon.home_spotify.entity.PerformerDistributionByStyle;
+import com.datastax.home_spotify.entity.PerformerDistributionByStyle;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -12,11 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
-import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
-import static com.datastax.spark.connector.japi.CassandraJavaUtil.typeConverter;
-import static fr.ippon.home_spotify.exercises.Schema.*;
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_2;
+import static com.datastax.home_spotify.exercises.Constants.EXERCISE_2;
 public class Exercise2 extends BaseExercise {
 
     public static final Map<String,String> PERFORMERS_TYPES = ImmutableMap.of("Person","artist","Group","group");

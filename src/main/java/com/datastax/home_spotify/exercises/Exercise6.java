@@ -1,4 +1,4 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_6;
+import static com.datastax.home_spotify.exercises.Constants.EXERCISE_6;
 import static java.util.stream.Collectors.toList;
 
 

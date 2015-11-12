@@ -1,7 +1,8 @@
-package fr.ippon.home_spotify.exercises;
+package com.datastax.home_spotify.exercises;
 
+import static com.datastax.home_spotify.exercises.Schema.*;
 
-import fr.ippon.home_spotify.entity.AlbumByDecadeAndCountry;
+import com.datastax.home_spotify.entity.AlbumByDecadeAndCountry;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -10,9 +11,8 @@ import scala.Tuple2;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
-import static fr.ippon.home_spotify.exercises.Schema.*;
 
-import static fr.ippon.home_spotify.exercises.Constants.EXERCISE_4;
+import static com.datastax.home_spotify.exercises.Constants.EXERCISE_4;
 
 public class Exercise4 extends BaseExercise{
 
@@ -38,7 +38,7 @@ public class Exercise4 extends BaseExercise{
          * );
          */
         JavaPairRDD<String, String> performers = javaFunctions(sc)
-                .cassandraTable(KEYSPACE, PERFORMERS)
+                .cassandraTable(Schema.KEYSPACE, Schema.PERFORMERS)
                 .select("name", "country")
                 .filter(row -> {
                     String country = row.getString("country");
@@ -47,7 +47,7 @@ public class Exercise4 extends BaseExercise{
                 .mapToPair(row -> new Tuple2(row.getString("name"), row.getString("country")));
 
         JavaPairRDD<String, Integer> albums = javaFunctions(sc)
-                .cassandraTable(KEYSPACE, ALBUMS)
+                .cassandraTable(Schema.KEYSPACE, Schema.ALBUMS)
                 .select("performer", "year")
                 .filter(row -> row.getInt("year") >= 1900)
                 .mapToPair(row -> new Tuple2(row.getString("performer"), row.getInt("year")));
@@ -59,15 +59,15 @@ public class Exercise4 extends BaseExercise{
 
         final JavaRDD<AlbumByDecadeAndCountry> result = joins
             //TODO Map RDD into a ((decade,country),1) using the computeDecade() pre-defined function
-            .mapToPair(join -> (Tuple2<Tuple2<String,String>,Integer>) null)
+            .mapToPair(join -> (Tuple2<Tuple2<String, String>, Integer>) null)
             //TODO Reduce by key to count the number of occurrence for each key (decade,country)
             .reduceByKey((left, right) -> (Integer) null)
             //TODO Map the tuple into AlbumByDecadeAndCountry POJO
-            .map(grouped -> (AlbumByDecadeAndCountry)null);
+            .map(grouped -> (AlbumByDecadeAndCountry) null);
 
         // Save back to Cassandra
         javaFunctions(result)
-            .writerBuilder(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY, mapToRow(AlbumByDecadeAndCountry.class))
+            .writerBuilder(Schema.KEYSPACE, Schema.ALBUMS_BY_DECADE_AND_COUNTRY, mapToRow(AlbumByDecadeAndCountry.class))
             .saveToCassandra();
 
         sc.stop();

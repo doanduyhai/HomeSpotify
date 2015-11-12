@@ -8,8 +8,8 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <spark.version>1.2.1</spark.version>
-        <spark.cassandra.connector.version>1.2.0-rc3</spark.cassandra.connector.version>
+        <spark.version>1.4.1</spark.version>
+        <spark.cassandra.connector.version>1.4.0</spark.cassandra.connector.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
