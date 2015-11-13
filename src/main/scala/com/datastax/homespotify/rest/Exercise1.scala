@@ -25,7 +25,7 @@ class Exercise1(implicit session: Session) extends HomespotifyStack with Jackson
   get("/verify_results") {
     val row = session.execute(checkResults.bind()).one()
     val count: Long = row.getLong("count")
-    Map("result" -> (count == 18180L))
+    Map("result" -> (count == 18257L))
   }
 
   get("/all_styles") {
@@ -36,11 +36,11 @@ class Exercise1(implicit session: Session) extends HomespotifyStack with Jackson
 
 
   get("/performers_by_style/:style") {
-    var performers: Vector[String] = Vector.empty;
+    var performers: Vector[String] = Vector.empty
     val iterator: util.Iterator[Row] = session.execute(performersByStylePs.bind(params("style")).setFetchSize(100)).iterator()
     while (iterator.hasNext) {
       val performer = iterator.next().getString("performer")
-      performers = performers :+ performer;
+      performers = performers :+ performer
     }
 
     performers

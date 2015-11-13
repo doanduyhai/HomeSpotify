@@ -3,16 +3,39 @@
     <tabset>
         <tab heading="Scala">
 <pre><code class="scala">
+case class AlbumByDecadeAndCountry(decade: String, country: String, albumCount: Long)
+
 val sc = buildSparkContext(EXERCISE_5)
 
-// Create an new Cassandra SQL context
-val cc = new CassandraSQLContext(sc)
+val sqlContext: SQLContext = new org.apache.spark.sql.SQLContext(sc)
 
-// Set the Cassandra keyspace to be used
-cc.setKeyspace(KEYSPACE)
+// Register performers in DataFrame
+sqlContext.sql(
+    s"""
+    |CREATE TEMPORARY TABLE performers
+    | USING org.apache.spark.sql.cassandra
+    | OPTIONS (
+    |   keyspace "$KEYSPACE",
+    |   table "$PERFORMERS",
+    |   pushdown "true"
+    | )
+    """.stripMargin)
 
-// Register computeDecade() as a SparkSQL function
-cc.registerFunction("computeDecade", computeDecade _)
+// Register albums in DataFrame
+sqlContext.sql(
+    s"""
+    |CREATE TEMPORARY TABLE albums
+    | USING org.apache.spark.sql.cassandra
+    | OPTIONS (
+    |   keyspace "$KEYSPACE",
+    |   table "$ALBUMS",
+    |   pushdown "true"
+    | )
+    """.stripMargin)
+
+// Register computeDecade() as a DataFrame function
+sqlContext.udf.register("computeDecade", computeDecade _)
+
 
 /*
  * CREATE TABLE IF NOT EXISTS performers (
@@ -51,25 +74,37 @@ val query: String = """
     """.stripMargin
 
 // Execute the SQL statement against Cassandra and Spark
-val rows: SchemaRDD = cc.cassandraSql(query)
+val rows: DataFrame = sqlContext.sql(query)
 
 // Map back the Schema RDD into a triplet (decade,country,count)
-rows.map(row => (row(0),row(1),row(2)))
-.saveToCassandra(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY_SQL, SomeColumns("decade","country","album_count"))
+rows.map(row => AlbumByDecadeAndCountry(row.getString(0),row.getString(1),row.getLong(2)))
+    .saveToCassandra(KEYSPACE, ALBUMS_BY_DECADE_AND_COUNTRY_SQL)
 
 </code></pre>
-        </tab>
-        <tab heading="Java 8">
+</tab>
+<tab heading="Java 8">
 <pre><code class="java">
 SparkContext sc = new SparkContext(buildScalaSparkConf(EXERCISE_5));
+final JavaSparkContext javaSc = new JavaSparkContext(sc);
+final SQLContext sqlContext = new SQLContext(javaSc);
 
-final CassandraSQLContext sqlContext = new CassandraSQLContext(sc);
 
-// Set the Cassandra keyspace to be used
-sqlContext.setKeyspace(KEYSPACE);
+// Register performers in DataFrame
+sqlContext.sql("CREATE TEMPORARY TABLE performers" +
+                " USING org.apache.spark.sql.cassandra" +
+                " OPTIONS (keyspace \"" + Schema.KEYSPACE + "\",  table \"" + Schema.PERFORMERS + "\", pushdown \"true\")");
+
+// Register albums in DataFrame
+sqlContext.sql("CREATE TEMPORARY TABLE albums" +
+                " USING org.apache.spark.sql.cassandra" +
+                " OPTIONS (keyspace \"" + Schema.KEYSPACE + "\",  table \"" + Schema.ALBUMS + "\", pushdown \"true\")");
 
 // Register computeDecade() as a SparkSQL function
-sqlContext.registerFunction("computeDecade", new Exercise5.ComputeDecadeFn(), typeTag(String.class));
+// Declare the UDF using the Scala API because of this bug
+// https://issues.apache.org/jira/browse/SPARK-9435
+sqlContext.udf().register("computeDecade", new Exercise5.ComputeDecadeFn(),
+    JavaApiHelper.getTypeTag(String.class),
+    JavaApiHelper.getTypeTag(Integer.class));
 
 /*
  * CREATE TABLE IF NOT EXISTS performers (
@@ -107,12 +142,12 @@ String query = "SELECT computeDecade(a.???),p.???,count(a.???) " +
     " HAVING count(a.???) > 250";
 
 // Execute the SQL statement against Cassandra and Spark
-final SchemaRDD schemaRDD = sqlContext.cassandraSql(query);
+final DataFrame dataFrame = sqlContext.sql(query);
 
-final JavaRDD&lt;Row&gt; javaRDD = JavaRDD.fromRDD(schemaRDD, JavaApiHelper.getClassTag(Row.class));
-
-// Map back the Schema RDD into a the AlbumByDecadeAndCountry POJO
-final JavaRDD&lt;AlbumByDecadeAndCountry&gt; mapped = javaRDD.map(row -> new AlbumByDecadeAndCountry(row.getString(0), row.getString(1), new Long(row.getLong(2)).intValue()));
+// Map back the DataFrame into a the AlbumByDecadeAndCountry POJO
+final JavaRDD&lt;AlbumByDecadeAndCountry&gt; mapped = dataFrame
+    .javaRDD()
+    .map(row -> new AlbumByDecadeAndCountry(row.getString(0), row.getString(1), new Long(row.getLong(2)).intValue()));
 
 // Save back to Cassandra
 javaFunctions(mapped)

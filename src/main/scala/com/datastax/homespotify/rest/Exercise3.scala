@@ -27,8 +27,8 @@ class Exercise3(implicit session: Session) extends HomespotifyStack with Jackson
     val jazzArtistCount: Int = extractCount(rows.filter(row => row.getString("type") == "artist" && row.getString("style") == "Jazz").headOption)
     val classicArtistCount: Int = extractCount(rows.filter(row => row.getString("type") == "artist" && row.getString("style") == "Classic").headOption)
 
-    Map("result" -> (rockGroupCount == 1585 && danceGroupCount == 221
-                      && jazzArtistCount == 142 && classicArtistCount == 361))
+    Map("result" -> (rockGroupCount == 1594 && danceGroupCount == 222
+                      && jazzArtistCount == 142 && classicArtistCount == 364))
   }
 
   get("/top10_style") {

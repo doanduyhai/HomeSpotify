@@ -23,7 +23,7 @@ class Exercise4(implicit session: Session) extends HomespotifyStack with Jackson
   get("/verify_results") {
     val row = session.execute(checkResults.bind()).one()
     val count: Long = row.getLong("count")
-    Map("result" -> (count == 407L))
+    Map("result" -> (count == 410L))
   }
 
   get("/load_decades") {

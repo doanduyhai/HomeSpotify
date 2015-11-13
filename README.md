@@ -11,7 +11,7 @@ Build and run the webapp:
 
 $ cd HomeSpotify
 $ git checkout webapp
-$ ./sbt
+$ sbt
 > container:start
 ```
 

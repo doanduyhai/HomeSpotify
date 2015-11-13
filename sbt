@@ -103,7 +103,7 @@ make_url () {
   category="$2"
   version="$3"
 
-  echo "http://typesafe.artifactoryonline.com/typesafe/ivy-$category/$groupid/sbt-launch/$version/sbt-launch.jar"
+  echo "https://dl.bintray.com/typesafe/ivy-$category/$groupid/sbt-launch/$version/sbt-launch.jar"
 }
 
 declare -r default_jvm_opts="-Dfile.encoding=UTF8"
@@ -216,10 +216,10 @@ download_url () {
   echo "    To  $jar"
 
   mkdir -p $(dirname "$jar") && {
-    if which curl >/dev/null; then
+    if which wget >/dev/null; then
+      wget --quiet -O "$jar" "$url"	
+    elif which curl >/dev/null; then
       curl --fail --silent "$url" --output "$jar"
-    elif which wget >/dev/null; then
-      wget --quiet -O "$jar" "$url"
     fi
   } && [[ -f "$jar" ]]
 }

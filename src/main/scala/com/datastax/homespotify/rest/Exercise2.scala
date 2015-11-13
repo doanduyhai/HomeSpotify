@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 class Exercise2(implicit session: Session) extends HomespotifyStack with JacksonJsonSupport {
 
   protected implicit val jsonFormats: Formats = DefaultFormats
-  lazy val checkResults:PreparedStatement = session.prepare("SELECT count(*) FROM performers_distribution_by_style")
+  lazy val checkResults:PreparedStatement = session.prepare("SELECT * FROM performers_distribution_by_style")
   lazy val getDistributionsPs:PreparedStatement = session.prepare("SELECT type,style,count FROM performers_distribution_by_style")
 
   type Str = java.lang.String
@@ -20,9 +20,15 @@ class Exercise2(implicit session: Session) extends HomespotifyStack with Jackson
   }
 
   get("/verify_results") {
-    val row = session.execute(checkResults.bind()).one()
-    val count: Long = row.getLong("count")
-    Map("result" -> (count == 154L))
+    val rows = session.execute(checkResults.bind()).all().asScala.toList
+    val count: Long = rows.size
+    val symphonicGroupCount = rows
+      .filter(row => row.getString("type") == "group" && row.getString("style") == "Symphonic")
+      .map(row => row.getInt("count"))
+      .headOption
+      .getOrElse(0)
+
+    Map("result" -> (count == 154L && symphonicGroupCount == 31))
   }
 
   get("/distribution_by_type_and_style") {
