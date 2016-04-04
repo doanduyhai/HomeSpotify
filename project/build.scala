@@ -36,7 +36,7 @@ object HomespotifyBuild extends Build {
         "javax.servlet" % "javax.servlet-api" % "3.1.0",
         "org.scalatra" %% "scalatra-json" % "2.3.0",
         "org.json4s"   %% "json4s-jackson" % "3.2.9",
-        "com.datastax.cassandra" % "cassandra-driver-core" % "2.1.4"
+        "com.datastax.cassandra" % "cassandra-driver-core" % "3.0.0"
       ),
       scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
         Seq(
