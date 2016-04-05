@@ -1,3 +1,6 @@
+- name: Update APT
+  apt: update_cache=yes
+
 - name: Install various tools
   apt: name={{item}}
   with_items:

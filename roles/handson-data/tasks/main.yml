@@ -6,7 +6,7 @@
   sudo: no
 
 - name: check if data has been imported
-  command: cqlsh -e 'SELECT keyspace_name FROM system.schema_keyspaces;' {{ vagrant_ip }}
+  command: cqlsh -e 'SELECT keyspace_name FROM system_schema.keyspaces;' {{ vagrant_ip }}
   register: u
   changed_when: false
 

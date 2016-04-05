@@ -13,6 +13,7 @@
 
 - name: build the stand-alone jar (it may take a while because SBT will download 111Mb of dependencies)
   shell: ./sbt assembly
+  sudo: no
   args:
     chdir: /home/vagrant/hands-on/app
 
@@ -20,6 +21,6 @@
   shell: update-rc.d homespotify defaults 55
   sudo: yes
 
-- name: ensure the homespotify webapp is started
-  shell: /etc/init.d/homespotify start
-  sudo: yes
+#- name: ensure the homespotify webapp is started
+#  shell: /etc/init.d/homespotify start
+#  sudo: yes
