@@ -6,6 +6,8 @@ import com.earldouglas.xsbtwebplugin.WebPlugin._
 import com.mojolly.scalate.ScalatePlugin._
 import ScalateKeys._
 import sbtassembly.Plugin._
+//import sbtassembly.Plugin.AssemblyKeys._
+import AssemblyKeys._
 
 
 
@@ -50,14 +52,14 @@ object HomespotifyBuild extends Build {
           )
         )
       },
-//      // handle conflicts during assembly task
-//      mergeStrategy in assembly <<= (mergeStrategy in assembly) {
-//        (old) => {
-//          case "about.html" => MergeStrategy.first
-//          case x => old(x)
-//        }
-//      },
-
+      // handle conflicts during assembly task
+      mergeStrategy in assembly := {
+        case PathList("META-INF", "io.netty.versions.properties", xs @ _*) => MergeStrategy.last
+        case "about.html" => MergeStrategy.first
+        case x =>
+          val oldStrategy = (mergeStrategy in assembly).value
+          oldStrategy(x)
+      },
       // copy web resources to /webapp folder
       resourceGenerators in Compile <+= (resourceManaged, baseDirectory) map {
         (managedBase, base) =>
