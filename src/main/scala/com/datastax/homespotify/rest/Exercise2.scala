@@ -28,7 +28,7 @@ class Exercise2(implicit session: Session) extends HomespotifyStack with Jackson
       .headOption
       .getOrElse(0)
 
-    Map("result" -> (count == 154L && symphonicGroupCount == 31))
+    Map("result" -> (count == 154L && symphonicGroupCount == 32))
   }
 
   get("/distribution_by_type_and_style") {

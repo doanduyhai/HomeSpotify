@@ -25,7 +25,7 @@ class Exercise1(implicit session: Session) extends HomespotifyStack with Jackson
   get("/verify_results") {
     val row = session.execute(checkResults.bind()).one()
     val count: Long = row.getLong("count")
-    Map("result" -> (count == 18257L))
+    Map("result" -> (count == 18187L))
   }
 
   get("/all_styles") {
